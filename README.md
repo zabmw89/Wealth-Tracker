@@ -130,7 +130,7 @@ Using Next.js App Router combines the frontend, typed API routes, server-side da
 
 ```bash
 # Clone the repository
-git clone <https://github.com/zabmw89/Wealth-Tracker.git>
+git clone https://github.com/zabmw89/Wealth-Tracker.git
 cd wealth-tracker
 
 # Copy environment variables
