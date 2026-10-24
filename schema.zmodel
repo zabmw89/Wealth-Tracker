@@ -1,0 +1,149 @@
+// schema.zmodel  (ZenStack v2 syntax; check policy syntax against your installed version)
+//
+// Rule of thumb: every model is deny-by-default. Anything not explicitly
+// allowed below fails closed, for UI routes AND agent tools alike.
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+plugin enhancer {
+  provider = '@core/enhancer'
+}
+
+enum Role {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+enum AssetType {
+  STOCK
+  CRYPTO
+  REAL_ESTATE
+  CASH
+}
+
+enum TxType {
+  BUY
+  SELL
+  DEPOSIT
+  WITHDRAW
+}
+
+enum Source {
+  UI
+  AGENT
+}
+
+model User {
+  id          String       @id @default(cuid())
+  email       String       @unique
+  name        String
+  memberships Membership[]
+
+  // Sign-up is handled by the auth layer; users only see/edit themselves.
+  @@allow('create', true)
+  @@allow('all', auth() == this)
+}
+
+model Portfolio {
+  id           String       @id @default(cuid())
+  name         String
+  baseCurrency String       @default("USD")
+  createdAt    DateTime     @default(now())
+  memberships  Membership[]
+  assets       Asset[]
+
+  // NOTE: creating a portfolio + its first OWNER membership is the ONE
+  // privileged write path (createPortfolio, using the unenhanced client,
+  // in a single transaction). Documented and audited on purpose: there is
+  // no owner yet to authorize the membership create.
+  @@allow('read', memberships?[user == auth()])
+  @@allow('update,delete', memberships?[user == auth() && role == OWNER])
+}
+
+model Membership {
+  id          String    @id @default(cuid())
+  role        Role
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  portfolioId String
+
+  @@unique([userId, portfolioId])
+
+  // Members can see who else is in their portfolio; only OWNERs manage it.
+  @@allow('read', portfolio.memberships?[user == auth()])
+  @@allow('create,update,delete', portfolio.memberships?[user == auth() && role == OWNER])
+}
+
+model Asset {
+  id           String        @id @default(cuid())
+  type         AssetType
+  symbol       String
+  name         String        // untrusted text: may reach the LLM, treat as data
+  portfolio    Portfolio     @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  portfolioId  String
+  transactions Transaction[]
+
+  @@unique([portfolioId, symbol])
+
+  @@allow('read', portfolio.memberships?[user == auth()])
+  @@allow('create,update,delete',
+          portfolio.memberships?[user == auth() && (role == OWNER || role == EDITOR)])
+}
+
+// Source of truth. Holdings are DERIVED from these rows, never stored.
+// Append-only: no update/delete policy, so corrections are reversing entries.
+model Transaction {
+  id          String   @id @default(cuid())
+  type        TxType
+  quantity    Decimal  @db.Decimal(28, 10)
+  price       Decimal  @db.Decimal(28, 10)
+  fee         Decimal  @db.Decimal(28, 10) @default(0)
+  date        DateTime
+  asset       Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  assetId     String
+  createdBy   String
+  createdAt   DateTime @default(now())
+
+  @@index([assetId, date])
+
+  @@allow('read', asset.portfolio.memberships?[user == auth()])
+  // createdBy must be the caller: the client (or the model) cannot forge authorship.
+  @@allow('create',
+          createdBy == auth().id &&
+          asset.portfolio.memberships?[user == auth() && (role == OWNER || role == EDITOR)])
+}
+
+// Global market data. Written only by the cron job (unenhanced client).
+model PriceSnapshot {
+  id     String   @id @default(cuid())
+  symbol String
+  price  Decimal  @db.Decimal(28, 10)
+  asOf   DateTime
+
+  @@index([symbol, asOf])
+
+  @@allow('read', auth() != null)
+}
+
+// Append-only audit trail. Owners can read; nobody can edit or delete.
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String
+  portfolioId String
+  source      Source
+  action      String
+  payload     Json
+  createdAt   DateTime @default(now())
+
+  @@allow('create', userId == auth().id)
+  @@allow('read', userId == auth().id)
+}

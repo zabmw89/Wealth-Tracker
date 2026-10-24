@@ -1,0 +1,8 @@
+node_modules
+.next
+.env
+.env.example
+node_modules/*
+
+#Ignore example file
+Talent_Syria_Wealth_Portfolio_Implementation_Plan.md
