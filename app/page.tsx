@@ -30,6 +30,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { t, dir as localeDir, type Locale } from '@/lib/i18n';
 import {
   Wallet,
   TrendingUp,
@@ -122,10 +123,22 @@ export default function Home() {
   // Theme state: light mode is the default
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
+  // Locale / language state — persisted to localStorage
+  const [locale, setLocale] = useState<Locale>('en');
+
+  // Shorthand accessor — re-evaluated on every render when locale changes
+  const tr = t(locale);
+
   useEffect(() => {
     const savedTheme = (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
     setTheme(savedTheme);
     document.documentElement.setAttribute('data-theme', savedTheme);
+
+    // Restore persisted locale on mount
+    const savedLocale = (localStorage.getItem('locale') as Locale) || 'en';
+    setLocale(savedLocale);
+    document.documentElement.setAttribute('lang', savedLocale);
+    document.documentElement.setAttribute('dir', localeDir[savedLocale]);
   }, []);
 
   const toggleTheme = () => {
@@ -133,6 +146,21 @@ export default function Home() {
     setTheme(nextTheme);
     document.documentElement.setAttribute('data-theme', nextTheme);
     localStorage.setItem('theme', nextTheme);
+  };
+
+  /** Toggle between English (LTR) and Arabic (RTL). */
+  const toggleLocale = () => {
+    const nextLocale: Locale = locale === 'en' ? 'ar' : 'en';
+    setLocale(nextLocale);
+    document.documentElement.setAttribute('lang', nextLocale);
+    document.documentElement.setAttribute('dir', localeDir[nextLocale]);
+    localStorage.setItem('locale', nextLocale);
+    // Update the AI assistant welcome message to match the new locale
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === 'init' ? { ...m, content: t(nextLocale).initMessage } : m
+      )
+    );
   };
 
   // Transaction Modal State
@@ -147,7 +175,7 @@ export default function Home() {
     date: new Date().toISOString().split('T')[0],
   });
 
-  // Chat State
+  // Chat State — initial message uses current locale
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'init',
@@ -193,11 +221,11 @@ export default function Home() {
     try {
       const res = await fetch(`/api/dev-login?email=${encodeURIComponent(email)}`);
       if (res.ok) {
-        setActionAlert({ type: 'success', message: `Switched active user to ${email}` });
+        setActionAlert({ type: 'success', message: `${tr.switchedUser} ${email}` });
         await fetchPortfolio();
       }
     } catch (err: any) {
-      setActionAlert({ type: 'error', message: 'Failed to switch user' });
+      setActionAlert({ type: 'error', message: tr.failedSwitch });
     }
   };
 
@@ -207,11 +235,11 @@ export default function Home() {
       setRefreshingPrices(true);
       const res = await fetch('/api/prices/refresh', { method: 'POST' });
       if (res.ok) {
-        setActionAlert({ type: 'success', message: 'Market price snapshots refreshed with demo feed.' });
+        setActionAlert({ type: 'success', message: tr.pricesRefreshed });
         await fetchPortfolio();
       }
     } catch (err: any) {
-      setActionAlert({ type: 'error', message: 'Failed to refresh prices' });
+      setActionAlert({ type: 'error', message: tr.failedRefresh });
     } finally {
       setRefreshingPrices(false);
     }
@@ -246,12 +274,12 @@ export default function Home() {
 
       setActionAlert({
         type: 'success',
-        message: `Transaction recorded successfully: ${txForm.type} ${txForm.quantity} units.`,
+        message: `${tr.txSuccess} ${txForm.type} ${txForm.quantity} units.`,
       });
       setIsTxModalOpen(false);
       await fetchPortfolio();
     } catch (err: any) {
-      setActionAlert({ type: 'error', message: err.message || 'Transaction submission error' });
+      setActionAlert({ type: 'error', message: err.message || tr.txFailed });
     } finally {
       setTxSubmitting(false);
     }
@@ -290,11 +318,11 @@ export default function Home() {
 
       setActionAlert({
         type: 'success',
-        message: `Proposal confirmed & executed: ${proposal.type} ${proposal.quantity} ${proposal.assetSymbol}.`,
+        message: `${tr.confirmSuccess} ${proposal.type} ${proposal.quantity} ${proposal.assetSymbol}.`,
       });
       await fetchPortfolio();
     } catch (err: any) {
-      setActionAlert({ type: 'error', message: err.message || 'Confirmation failed' });
+      setActionAlert({ type: 'error', message: err.message || tr.confirmFailed });
     }
   };
 
@@ -307,7 +335,7 @@ export default function Home() {
           : m
       )
     );
-    setActionAlert({ type: 'success', message: 'Proposal safely discarded. No changes made.' });
+    setActionAlert({ type: 'success', message: tr.proposalCancelled });
   };
 
   // Submit Chat Prompt
@@ -442,8 +470,8 @@ export default function Home() {
       <div className="app-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
         <div style={{ textAlign: 'center' }}>
           <RefreshCw className="animate-spin" size={36} color="var(--accent-primary)" style={{ animation: 'spin 1s linear infinite', margin: '0 auto 16px auto' }} />
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Loading Wealth Portfolio...</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Verifying authenticated role and calculating holdings...</p>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>{tr.loadingTitle}</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{tr.loadingDesc}</p>
         </div>
       </div>
     );
@@ -455,10 +483,10 @@ export default function Home() {
         <div className="alert-banner alert-error" style={{ margin: '40px auto', maxWidth: '600px' }}>
           <AlertTriangle size={24} />
           <div>
-            <strong>Error Loading Portfolio</strong>
-            <p>{error || 'No portfolio data available'}</p>
+            <strong>{tr.errorTitle}</strong>
+            <p>{error || tr.errorNoData}</p>
           </div>
-          <button className="btn btn-secondary btn-sm" onClick={fetchPortfolio}>Retry</button>
+          <button className="btn btn-secondary btn-sm" onClick={fetchPortfolio}>{tr.retry}</button>
         </div>
       </div>
     );
@@ -479,8 +507,8 @@ export default function Home() {
             <Wallet size={22} />
           </div>
           <div>
-            <h1 className="logo-title">Wealth Portfolio Tracker</h1>
-            <span className="logo-subtitle">Talent Syria Technical Assessment</span>
+            <h1 className="logo-title">{tr.appTitle}</h1>
+            <span className="logo-subtitle">{tr.appSubtitle}</span>
           </div>
         </div>
 
@@ -488,7 +516,7 @@ export default function Home() {
         <div className="header-actions">
           {/* Persona Switcher Bar */}
           <div className="user-bar">
-            <span className="role-switcher-title">Switch Persona:</span>
+            <span className="role-switcher-title">{tr.switchPersona}</span>
             {data.demoUsers.map((u) => {
               const role = u.email.includes('alice') ? 'OWNER' : u.email.includes('bob') ? 'EDITOR' : 'VIEWER';
               const isActive = u.id === data.user.id;
@@ -506,11 +534,21 @@ export default function Home() {
             })}
           </div>
 
+          {/* Language Toggle Button */}
+          <button
+            className="lang-toggle-btn"
+            onClick={toggleLocale}
+            title={tr.switchLang}
+            aria-label="Toggle language"
+          >
+            {tr.switchLang}
+          </button>
+
           {/* Theme Toggle Button */}
           <button
             className="theme-toggle-btn"
             onClick={toggleTheme}
-            title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+            title={theme === 'light' ? tr.switchToDark : tr.switchToLight}
             aria-label="Toggle theme"
           >
             {theme === 'light' ? <Moon size={18} /> : <Sun size={18} color="#00fa9a" />}
@@ -539,13 +577,13 @@ export default function Home() {
         <div className="demo-banner-left">
           <Shield size={16} color="var(--accent-primary)" />
           <span>
-            <strong>Deterministic Demo Dataset:</strong> Valuations use exact decimal average-cost accounting. Role-based access control is enforced at the database policy layer.
+            <strong>{tr.demoBannerText}</strong> {tr.demoBannerDesc}
           </span>
         </div>
         <div className="demo-banner-right">
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
             <Clock size={12} style={{ display: 'inline', marginRight: '4px' }} />
-            Prices as of: {new Date(data.asOf).toLocaleTimeString()}
+            {tr.pricesAsOf} {new Date(data.asOf).toLocaleTimeString()}
           </span>
           <button
             className="btn btn-secondary btn-sm"
@@ -553,7 +591,7 @@ export default function Home() {
             disabled={refreshingPrices}
           >
             <RefreshCw size={12} className={refreshingPrices ? 'animate-spin' : ''} />
-            <span>{refreshingPrices ? 'Updating...' : 'Refresh Prices'}</span>
+            <span>{refreshingPrices ? tr.updating : tr.refreshPrices}</span>
           </button>
         </div>
       </div>
@@ -562,33 +600,33 @@ export default function Home() {
       <section className="metrics-grid">
         <div className="glass-card metric-card">
           <div className="metric-header">
-            <span>Total Net Worth</span>
+            <span>{tr.totalNetWorth}</span>
             <Wallet size={16} color="var(--accent-primary)" />
           </div>
           <div className="metric-value">
             ${Number(data.allocation.totalValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div className="metric-footer" style={{ color: 'var(--text-secondary)' }}>
-            <span>Base Currency: {data.portfolio.baseCurrency}</span>
+            <span>{tr.baseCurrency} {data.portfolio.baseCurrency}</span>
           </div>
         </div>
 
         <div className="glass-card metric-card">
           <div className="metric-header">
-            <span>Total Cost Basis</span>
+            <span>{tr.totalCostBasis}</span>
             <DollarSign size={16} color="#94a3b8" />
           </div>
           <div className="metric-value">
             ${Number(data.allocation.totalCost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div className="metric-footer" style={{ color: 'var(--text-muted)' }}>
-            <span>Cumulative invested capital</span>
+            <span>{tr.cumulativeCapital}</span>
           </div>
         </div>
 
         <div className="glass-card metric-card">
           <div className="metric-header">
-            <span>Unrealized Gain / Loss</span>
+            <span>{tr.unrealizedGainLoss}</span>
             <TrendingUp size={16} color={pnlNum >= 0 ? 'var(--success)' : 'var(--danger)'} />
           </div>
           <div className={`metric-value ${pnlNum >= 0 ? 'pnl-positive' : 'pnl-negative'}`}>
@@ -598,20 +636,20 @@ export default function Home() {
             <span className={pnlNum >= 0 ? 'pnl-positive' : 'pnl-negative'} style={{ fontWeight: 600 }}>
               {pnlNum >= 0 ? '+' : ''}{pnlPct}%
             </span>
-            <span style={{ color: 'var(--text-muted)' }}>return on invested capital</span>
+            <span style={{ color: 'var(--text-muted)' }}>{tr.returnOnCapital}</span>
           </div>
         </div>
 
         <div className="glass-card metric-card">
           <div className="metric-header">
-            <span>Liquid Cash Reserves</span>
+            <span>{tr.liquidCash}</span>
             <Coins size={16} color="#f59e0b" />
           </div>
           <div className="metric-value">
             ${cashHolding ? Number(cashHolding.value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
           </div>
           <div className="metric-footer" style={{ color: 'var(--text-muted)' }}>
-            <span>Available for deployment</span>
+            <span>{tr.availableForDeployment}</span>
           </div>
         </div>
       </section>
@@ -621,9 +659,9 @@ export default function Home() {
         <div className="section-header" style={{ marginBottom: '8px' }}>
           <h2 className="section-title">
             <Layers size={18} color="var(--accent-primary)" />
-            <span>Asset Allocation</span>
+            <span>{tr.assetAllocation}</span>
           </h2>
-          <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Categorized by asset class</span>
+          <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>{tr.categorizedByClass}</span>
         </div>
 
         {/* Visual Allocation Bar */}
@@ -655,28 +693,28 @@ export default function Home() {
           <div className="legend-item">
             <div className="legend-color-dot segment-stock" />
             <div className="legend-info">
-              <span className="legend-label">Stocks</span>
+              <span className="legend-label">{tr.stocks}</span>
               <span className="legend-value">${Number(data.allocation.byType.STOCK?.value || 0).toLocaleString()} ({data.allocation.byType.STOCK?.pct || '0'}%)</span>
             </div>
           </div>
           <div className="legend-item">
             <div className="legend-color-dot segment-crypto" />
             <div className="legend-info">
-              <span className="legend-label">Crypto</span>
+              <span className="legend-label">{tr.crypto}</span>
               <span className="legend-value">${Number(data.allocation.byType.CRYPTO?.value || 0).toLocaleString()} ({data.allocation.byType.CRYPTO?.pct || '0'}%)</span>
             </div>
           </div>
           <div className="legend-item">
             <div className="legend-color-dot segment-realestate" />
             <div className="legend-info">
-              <span className="legend-label">Real Estate</span>
+              <span className="legend-label">{tr.realEstate}</span>
               <span className="legend-value">${Number(data.allocation.byType.REAL_ESTATE?.value || 0).toLocaleString()} ({data.allocation.byType.REAL_ESTATE?.pct || '0'}%)</span>
             </div>
           </div>
           <div className="legend-item">
             <div className="legend-color-dot segment-cash" />
             <div className="legend-info">
-              <span className="legend-label">Cash</span>
+              <span className="legend-label">{tr.cash}</span>
               <span className="legend-value">${Number(data.allocation.byType.CASH?.value || 0).toLocaleString()} ({data.allocation.byType.CASH?.pct || '0'}%)</span>
             </div>
           </div>
@@ -692,18 +730,18 @@ export default function Home() {
             <div className="section-header">
               <h2 className="section-title">
                 <Coins size={18} color="var(--accent-primary)" />
-                <span>Holdings Projection</span>
+                <span>{tr.holdingsProjection}</span>
               </h2>
 
               {isViewer ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                   <Lock size={14} color="#93c5fd" />
-                  <span>Viewer mode (Read-only)</span>
+                  <span>{tr.viewerMode}</span>
                 </div>
               ) : (
                 <button className="btn btn-primary btn-sm" onClick={() => setIsTxModalOpen(true)}>
                   <Plus size={14} />
-                  <span>Record Transaction</span>
+                  <span>{tr.recordTransaction}</span>
                 </button>
               )}
             </div>
@@ -712,13 +750,13 @@ export default function Home() {
               <table>
                 <thead>
                   <tr>
-                    <th>Asset</th>
-                    <th>Class</th>
-                    <th style={{ textAlign: 'right' }}>Quantity</th>
-                    <th style={{ textAlign: 'right' }}>Cost Basis</th>
-                    <th style={{ textAlign: 'right' }}>Market Price</th>
-                    <th style={{ textAlign: 'right' }}>Market Value</th>
-                    <th style={{ textAlign: 'right' }}>Gain / Loss</th>
+                    <th>{tr.asset}</th>
+                    <th>{tr.class}</th>
+                    <th style={{ textAlign: 'right' }}>{tr.quantity}</th>
+                    <th style={{ textAlign: 'right' }}>{tr.costBasis}</th>
+                    <th style={{ textAlign: 'right' }}>{tr.marketPrice}</th>
+                    <th style={{ textAlign: 'right' }}>{tr.marketValue}</th>
+                    <th style={{ textAlign: 'right' }}>{tr.gainLoss}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -764,10 +802,10 @@ export default function Home() {
             <div className="section-header">
               <h2 className="section-title">
                 <FileText size={18} color="var(--accent-primary)" />
-                <span>Append-Only Ledger</span>
+                <span>{tr.appendOnlyLedger}</span>
               </h2>
               <span className="badge" style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-muted)' }}>
-                Immutable Ledger ({data.transactions.length})
+                {tr.immutableLedger} ({data.transactions.length})
               </span>
             </div>
 
@@ -775,13 +813,13 @@ export default function Home() {
               <table>
                 <thead>
                   <tr>
-                    <th>Date</th>
-                    <th>Type</th>
-                    <th>Asset</th>
-                    <th style={{ textAlign: 'right' }}>Quantity</th>
-                    <th style={{ textAlign: 'right' }}>Unit Price</th>
-                    <th style={{ textAlign: 'right' }}>Fee</th>
-                    <th style={{ textAlign: 'right' }}>Total</th>
+                    <th>{tr.date}</th>
+                    <th>{tr.type}</th>
+                    <th>{tr.asset}</th>
+                    <th style={{ textAlign: 'right' }}>{tr.quantity}</th>
+                    <th style={{ textAlign: 'right' }}>{tr.unitPrice}</th>
+                    <th style={{ textAlign: 'right' }}>{tr.fee}</th>
+                    <th style={{ textAlign: 'right' }}>{tr.total}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -828,11 +866,10 @@ export default function Home() {
               <div className="assistant-pulse-dot" />
               <div>
                 <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Sparkles size={15} color="var(--accent-primary)" />
-                  AI Portfolio Assistant
+                  {tr.aiAssistant}
                 </h3>
                 <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
-                  Bound by: <strong>{data.role}</strong> policies
+                  {tr.boundBy} <strong>{data.role}</strong> {tr.policies}
                 </span>
               </div>
             </div>
@@ -865,32 +902,32 @@ export default function Home() {
                     <div className="proposal-header">
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <AlertTriangle size={14} color="#fbbf24" />
-                        <span>Pending Transaction Proposal</span>
+                        <span>{tr.pendingProposal}</span>
                       </div>
                       <span className="badge" style={{ background: '#f59e0b', color: '#000' }}>
-                        Requires Approval
+                        {tr.requiresApproval}
                       </span>
                     </div>
 
                     <div className="proposal-details">
                       <div>
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.6875rem' }}>ASSET</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.6875rem' }}>{tr.proposalAsset}</span>
                         <div>{m.proposal.assetSymbol}</div>
                       </div>
                       <div>
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.6875rem' }}>ACTION</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.6875rem' }}>{tr.proposalAction}</span>
                         <div>{m.proposal.type}</div>
                       </div>
                       <div>
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.6875rem' }}>QUANTITY</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.6875rem' }}>{tr.proposalQuantity}</span>
                         <div>{m.proposal.quantity}</div>
                       </div>
                       <div>
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.6875rem' }}>UNIT PRICE</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.6875rem' }}>{tr.proposalUnitPrice}</span>
                         <div>${Number(m.proposal.price).toLocaleString()}</div>
                       </div>
                       <div style={{ gridColumn: 'span 2' }}>
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.6875rem' }}>ESTIMATED TOTAL</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.6875rem' }}>{tr.proposalTotal}</span>
                         <div>${(Number(m.proposal.quantity) * Number(m.proposal.price)).toLocaleString()}</div>
                       </div>
                     </div>
@@ -903,19 +940,19 @@ export default function Home() {
                           onClick={() => handleConfirmProposal(m.proposal!, m.id)}
                         >
                           <Check size={14} />
-                          <span>Confirm Transaction</span>
+                          <span>{tr.confirmTransaction}</span>
                         </button>
                         <button
                           className="btn btn-secondary btn-sm"
                           onClick={() => handleCancelProposal(m.id)}
                         >
                           <X size={14} />
-                          <span>Cancel</span>
+                          <span>{tr.cancel}</span>
                         </button>
                       </div>
                     ) : (
                       <div style={{ fontSize: '0.75rem', fontWeight: 600, color: m.proposal.status === 'confirmed' ? '#34d399' : '#f87171' }}>
-                        {m.proposal.status === 'confirmed' ? '✓ Transaction Confirmed & Persisted' : '✕ Proposal Discarded'}
+                        {m.proposal.status === 'confirmed' ? tr.confirmed : tr.discarded}
                       </div>
                     )}
                   </div>
@@ -926,26 +963,26 @@ export default function Home() {
             {chatLoading && (
               <div className="message-bubble message-assistant" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <RefreshCw size={14} className="animate-spin" />
-                <span>Thinking & querying portfolio tools...</span>
+                <span>{tr.thinking}</span>
               </div>
             )}
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Quick Prompt Chips */}
+          {/* Quick Prompt Chips — labels are translated; prompts sent to AI stay in English */}
           <div className="prompt-chips">
-            <button className="chip-btn" onClick={() => handleSendChat('Summarize my portfolio')}>
-              📊 Summary
+            <button className="chip-btn" onClick={() => handleSendChat(tr.chipSummaryPrompt)}>
+              {tr.chipSummary}
             </button>
-            <button className="chip-btn" onClick={() => handleSendChat('Show my current holdings')}>
-              📈 Holdings
+            <button className="chip-btn" onClick={() => handleSendChat(tr.chipHoldingsPrompt)}>
+              {tr.chipHoldings}
             </button>
-            <button className="chip-btn" onClick={() => handleSendChat('Suggest rebalancing my portfolio')}>
-              ⚖️ Rebalance
+            <button className="chip-btn" onClick={() => handleSendChat(tr.chipRebalancePrompt)}>
+              {tr.chipRebalance}
             </button>
             {!isViewer && (
-              <button className="chip-btn" onClick={() => handleSendChat('Propose buying 5 shares of AAPL at 230')}>
-                💡 Propose AAPL Trade
+              <button className="chip-btn" onClick={() => handleSendChat(tr.chipProposePrompt)}>
+                {tr.chipPropose}
               </button>
             )}
           </div>
@@ -962,7 +999,7 @@ export default function Home() {
               <input
                 type="text"
                 className="chat-input"
-                placeholder={isViewer ? 'Ask portfolio questions (read-only)...' : 'Ask questions or propose trades...'}
+                placeholder={isViewer ? tr.askReadOnly : tr.askWritable}
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 disabled={chatLoading}
@@ -982,7 +1019,7 @@ export default function Home() {
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Plus size={18} color="var(--accent-primary)" />
-                <h3 style={{ fontSize: '1.125rem', fontWeight: 700 }}>Record Transaction</h3>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 700 }}>{tr.recordTxTitle}</h3>
               </div>
               <button
                 onClick={() => setIsTxModalOpen(false)}
@@ -995,7 +1032,7 @@ export default function Home() {
             <form onSubmit={handleCreateTransaction}>
               <div className="modal-body">
                 <div className="form-group">
-                  <label className="form-label">Asset</label>
+                  <label className="form-label">{tr.txAsset}</label>
                   <select
                     className="form-select"
                     value={txForm.assetId}
@@ -1011,7 +1048,7 @@ export default function Home() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Transaction Type</label>
+                  <label className="form-label">{tr.txType}</label>
                   <select
                     className="form-select"
                     value={txForm.type}
@@ -1024,9 +1061,9 @@ export default function Home() {
                   </select>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="transaction-fields">
                   <div className="form-group">
-                    <label className="form-label">Quantity</label>
+                    <label className="form-label">{tr.txQuantity}</label>
                     <input
                       type="number"
                       step="any"
@@ -1039,7 +1076,7 @@ export default function Home() {
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Unit Price ($)</label>
+                    <label className="form-label">{tr.txUnitPrice}</label>
                     <input
                       type="number"
                       step="any"
@@ -1052,9 +1089,9 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="transaction-fields">
                   <div className="form-group">
-                    <label className="form-label">Fee ($)</label>
+                    <label className="form-label">{tr.txFee}</label>
                     <input
                       type="number"
                       step="any"
@@ -1066,7 +1103,7 @@ export default function Home() {
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Date</label>
+                    <label className="form-label">{tr.txDate}</label>
                     <input
                       type="date"
                       className="form-input"
@@ -1084,14 +1121,14 @@ export default function Home() {
                   className="btn btn-secondary"
                   onClick={() => setIsTxModalOpen(false)}
                 >
-                  Cancel
+                  {tr.txCancel}
                 </button>
                 <button
                   type="submit"
                   className="btn btn-primary"
                   disabled={txSubmitting}
                 >
-                  {txSubmitting ? 'Recording...' : 'Commit Transaction'}
+                  {txSubmitting ? tr.txRecording : tr.txCommit}
                 </button>
               </div>
             </form>

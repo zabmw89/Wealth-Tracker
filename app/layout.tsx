@@ -13,6 +13,7 @@
  */
 
 import type { Metadata } from 'next';
+// @ts-expect-error Next.js handles global CSS imports at build time.
 import './globals.css';
 
 /**
@@ -20,7 +21,7 @@ import './globals.css';
  * through their own exported `metadata` object.
  */
 export const metadata: Metadata = {
-  title: 'Wealth Portfolio Tracker | Talent Syria Assessment',
+  title: 'Wealth Portfolio Tracker',
   description: 'Multi-asset portfolio management prototype with policy-enforced RBAC and AI tool orchestration.',
 };
 
@@ -32,8 +33,10 @@ export const metadata: Metadata = {
  */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    // suppressHydrationWarning: prevents false-positive hydration warnings from browser extensions
-    <html lang="en" suppressHydrationWarning>
+    // suppressHydrationWarning: prevents false-positive hydration warnings from browser extensions.
+    // lang and dir are initially set to English LTR; page.tsx updates them dynamically via
+    // document.documentElement.setAttribute() when the user switches to Arabic (RTL).
+    <html lang="en" dir="ltr" suppressHydrationWarning>
       <body suppressHydrationWarning>{children}</body>
     </html>
   );

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Noto+Kufi+Arabic:wght@400;500;600;700;800&display=swap');
 
 /* =========================================================
    LIGHT THEME (DEFAULT) - ACCENT: #00FA9A (Spring Green)
@@ -53,6 +53,7 @@
   --info-border: rgba(2, 132, 199, 0.25);
 
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-sans-ar: 'Noto Kufi Arabic', 'Plus Jakarta Sans', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
   --radius-sm: 6px;
@@ -901,6 +902,13 @@ tr:hover td {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
+}
+
+.transaction-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .form-label {
@@ -917,6 +925,8 @@ tr:hover td {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 10px 12px;
+  width: 100%;
+  min-width: 0;
   color: var(--text-primary);
   font-size: 0.875rem;
   outline: none;
@@ -934,6 +944,8 @@ tr:hover td {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 10px 14px;
+  width: 100%;
+  min-width: 0;
   color: var(--text-primary) !important;
   font-size: 0.875rem;
   outline: none;
@@ -986,4 +998,168 @@ tr:hover td {
   background: var(--danger-bg);
   border: 1px solid var(--danger-border);
   color: var(--danger);
+}
+
+/* =========================================================
+   ARABIC / RTL LANGUAGE SUPPORT
+   All overrides are scoped to [dir='rtl'] so the LTR layout
+   is completely unaffected when English is active.
+   ========================================================= */
+
+/* Switch to Arabic web font when RTL is active */
+[dir='rtl'] body {
+  font-family: var(--font-sans-ar);
+  direction: rtl;
+}
+
+/* Flip flex rows that use start→end directionality */
+[dir='rtl'] .top-nav {
+  flex-direction: row-reverse;
+}
+
+[dir='rtl'] .logo-area {
+  flex-direction: row-reverse;
+}
+
+[dir='rtl'] .header-actions {
+  flex-direction: row-reverse;
+}
+
+[dir='rtl'] .user-bar {
+  flex-direction: row-reverse;
+}
+
+[dir='rtl'] .role-switcher-title {
+  margin-right: 0;
+  margin-left: 4px;
+}
+
+[dir='rtl'] .demo-banner {
+  flex-direction: row-reverse;
+}
+
+[dir='rtl'] .demo-banner-left,
+[dir='rtl'] .demo-banner-right {
+  flex-direction: row-reverse;
+}
+
+[dir='rtl'] .section-header {
+  flex-direction: row-reverse;
+}
+
+[dir='rtl'] .section-title {
+  flex-direction: row-reverse;
+}
+
+[dir='rtl'] .metric-header {
+  flex-direction: row-reverse;
+}
+
+[dir='rtl'] .metric-footer {
+  flex-direction: row-reverse;
+}
+
+/* Table text alignment — numbers stay LTR for readability */
+[dir='rtl'] th,
+[dir='rtl'] td {
+  text-align: right;
+}
+
+[dir='rtl'] th[style*='text-align: right'],
+[dir='rtl'] td[style*='text-align: right'] {
+  text-align: left;
+}
+
+[dir='rtl'] .asset-cell {
+  flex-direction: row-reverse;
+}
+
+/* Allocation legend */
+[dir='rtl'] .allocation-legend {
+  direction: rtl;
+}
+
+[dir='rtl'] .legend-item {
+  flex-direction: row-reverse;
+}
+
+/* AI assistant panel */
+[dir='rtl'] .assistant-header {
+  flex-direction: row-reverse;
+}
+
+[dir='rtl'] .assistant-title-group {
+  flex-direction: row-reverse;
+}
+
+[dir='rtl'] .message-bubble {
+  text-align: right;
+}
+
+[dir='rtl'] .proposal-header {
+  flex-direction: row-reverse;
+}
+
+[dir='rtl'] .proposal-actions {
+  flex-direction: row-reverse;
+}
+
+[dir='rtl'] .prompt-chips {
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+}
+
+[dir='rtl'] .assistant-input-area {
+  direction: rtl;
+}
+
+[dir='rtl'] .assistant-form {
+  flex-direction: row-reverse;
+}
+
+/* Modal */
+[dir='rtl'] .modal-header {
+  flex-direction: row-reverse;
+}
+
+[dir='rtl'] .modal-footer {
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+}
+
+[dir='rtl'] .form-group label {
+  text-align: right;
+  display: block;
+}
+
+/* Button icon+text ordering */
+[dir='rtl'] .btn {
+  flex-direction: row-reverse;
+}
+
+/* Language toggle button */
+.lang-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-family: inherit;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.lang-toggle-btn:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent-primary);
+  color: var(--accent-secondary);
 }
