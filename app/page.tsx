@@ -135,10 +135,15 @@ export default function Home() {
     document.documentElement.setAttribute('data-theme', savedTheme);
 
     // Restore persisted locale on mount
-    const savedLocale = (localStorage.getItem('locale') as Locale) || 'en';
+    const savedLocale: Locale = localStorage.getItem('locale') === 'ar' ? 'ar' : 'en';
     setLocale(savedLocale);
     document.documentElement.setAttribute('lang', savedLocale);
     document.documentElement.setAttribute('dir', localeDir[savedLocale]);
+    setMessages((prev) =>
+      prev.map((message) =>
+        message.id === 'init' ? { ...message, content: t(savedLocale).initMessage } : message
+      )
+    );
   }, []);
 
   const toggleTheme = () => {
@@ -539,7 +544,7 @@ export default function Home() {
             className="lang-toggle-btn"
             onClick={toggleLocale}
             title={tr.switchLang}
-            aria-label="Toggle language"
+            aria-label={tr.switchLang}
           >
             {tr.switchLang}
           </button>

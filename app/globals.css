@@ -1012,19 +1012,7 @@ tr:hover td {
   direction: rtl;
 }
 
-/* Flip flex rows that use start→end directionality */
-[dir='rtl'] .top-nav {
-  flex-direction: row-reverse;
-}
-
-[dir='rtl'] .logo-area {
-  flex-direction: row-reverse;
-}
-
-[dir='rtl'] .header-actions {
-  flex-direction: row-reverse;
-}
-
+/* Preserve intentional control order where it differs from the RTL default. */
 [dir='rtl'] .user-bar {
   flex-direction: row-reverse;
 }
@@ -1032,31 +1020,6 @@ tr:hover td {
 [dir='rtl'] .role-switcher-title {
   margin-right: 0;
   margin-left: 4px;
-}
-
-[dir='rtl'] .demo-banner {
-  flex-direction: row-reverse;
-}
-
-[dir='rtl'] .demo-banner-left,
-[dir='rtl'] .demo-banner-right {
-  flex-direction: row-reverse;
-}
-
-[dir='rtl'] .section-header {
-  flex-direction: row-reverse;
-}
-
-[dir='rtl'] .section-title {
-  flex-direction: row-reverse;
-}
-
-[dir='rtl'] .metric-header {
-  flex-direction: row-reverse;
-}
-
-[dir='rtl'] .metric-footer {
-  flex-direction: row-reverse;
 }
 
 /* Table text alignment — numbers stay LTR for readability */
@@ -1070,42 +1033,17 @@ tr:hover td {
   text-align: left;
 }
 
-[dir='rtl'] .asset-cell {
-  flex-direction: row-reverse;
-}
-
 /* Allocation legend */
 [dir='rtl'] .allocation-legend {
   direction: rtl;
 }
 
-[dir='rtl'] .legend-item {
-  flex-direction: row-reverse;
-}
-
 /* AI assistant panel */
-[dir='rtl'] .assistant-header {
-  flex-direction: row-reverse;
-}
-
-[dir='rtl'] .assistant-title-group {
-  flex-direction: row-reverse;
-}
-
 [dir='rtl'] .message-bubble {
   text-align: right;
 }
 
-[dir='rtl'] .proposal-header {
-  flex-direction: row-reverse;
-}
-
-[dir='rtl'] .proposal-actions {
-  flex-direction: row-reverse;
-}
-
 [dir='rtl'] .prompt-chips {
-  flex-direction: row-reverse;
   justify-content: flex-end;
 }
 
@@ -1113,15 +1051,7 @@ tr:hover td {
   direction: rtl;
 }
 
-[dir='rtl'] .assistant-form {
-  flex-direction: row-reverse;
-}
-
 /* Modal */
-[dir='rtl'] .modal-header {
-  flex-direction: row-reverse;
-}
-
 [dir='rtl'] .modal-footer {
   flex-direction: row-reverse;
   justify-content: flex-start;
@@ -1130,11 +1060,6 @@ tr:hover td {
 [dir='rtl'] .form-group label {
   text-align: right;
   display: block;
-}
-
-/* Button icon+text ordering */
-[dir='rtl'] .btn {
-  flex-direction: row-reverse;
 }
 
 /* Language toggle button */
